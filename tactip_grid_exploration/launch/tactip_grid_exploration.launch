@@ -8,7 +8,7 @@
   <arg     if="$(arg debug)" name="launch_prefix"
      value="gdb -x $(find ur3_moveit_config)/launch/gdb_settings.gdb --ex run --args" />
 
-  <node name="tactip_grid_exploration" pkg="visuoTactile" type="tactip_grid_exploration" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
+  <node name="tactip_grid_exploration" pkg="visuo-tactile" type="tactip_grid_exploration" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
   </node>
 
 </launch>
