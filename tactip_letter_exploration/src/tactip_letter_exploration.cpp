@@ -2,7 +2,7 @@
  *********************************************************************************
  * Author: Uriel Martinez-Hernandez
  * Email: u.martinez@bath.ac.uk
- * Date: 4-March-2020
+ * Date: 5-March-2020
  *
  * University of Bath
  * Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
@@ -27,7 +27,7 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "tactip_grid_exploration");
+    ros::init(argc, argv, "tactip_letter_exploration");
     ros::NodeHandle node_handle;
     ros::AsyncSpinner spinner(1);
     spinner.start();
@@ -269,8 +269,12 @@ int main(int argc, char** argv)
     // The following code perform the iterative exploration over a grid with the TacTip
     // Begin
 
+
+    double maxColumn = 3;
+    double maxRow = 3;
+
     // This exploration is performed on a 5x5 grid
-    for( int iterJ = 0; iterJ < 5; iterJ++ )
+    for( int iterJ = 0; iterJ < maxColumn; iterJ++ )
     {
         target_pose1 = move_group.getCurrentPose().pose;
 
@@ -280,7 +284,7 @@ int main(int argc, char** argv)
             target_pose1.position.y += RIGHT_MOVE;
         }
 
-        for( int iterI = 0; iterI < 5; iterI++ )
+        for( int iterI = 0; iterI < maxRow; iterI++ )
         {
             waypoints.clear();
             waypoints.push_back(target_pose1);  // start pose
@@ -288,15 +292,9 @@ int main(int argc, char** argv)
             target_pose1.position.z -= DOWN_MOVE;
             waypoints.push_back(target_pose1);  // move end-effector down
 
-            target_pose1.position.z += UP_MOVE;
-            waypoints.push_back(target_pose1);  // move end-effector up
-
-            target_pose1.position.x -= BACKWARD_MOVE;
-            waypoints.push_back(target_pose1);  // move end-effector back
-
             move_group.setPoseTarget(target_pose1);
 
-            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
+//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
 
             fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
 
@@ -323,7 +321,68 @@ int main(int argc, char** argv)
             visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
             visual_tools.trigger();
 
-            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
+//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
+
+            // Finally plan and execute the trajectory
+            plan.trajectory_ = trajectory_;
+
+            // IMPORTANT!!!!!     
+            // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
+            // The current version of this program still does NOT work properly with the 'move' method
+            // Using the 'move' method in this program might generate unexected and dangerous robot movements
+            move_group.execute(plan);
+            //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
+
+            //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
+
+            // Get the current kinemtic state of the robot
+            kinematic_state = move_group.getCurrentState();
+
+
+            // send signal here to collect data with the tactip
+            sleep(2);
+
+
+            target_pose1 = move_group.getCurrentPose().pose;
+
+            waypoints.clear();
+
+            target_pose1.position.z += UP_MOVE;
+            waypoints.push_back(target_pose1);  // move end-effector up
+
+            target_pose1.position.x -= BACKWARD_MOVE;
+            waypoints.push_back(target_pose1);  // move end-effector back
+
+            move_group.setPoseTarget(target_pose1);
+
+//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
+
+            fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
+
+            rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
+
+            ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
+
+            // Thrid create a IterativeParabolicTimeParameterization object
+            success = iptp.computeTimeStamps(rt);
+            ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+
+
+            // Get RobotTrajectory_msg from RobotTrajectory
+            rt.getRobotTrajectoryMsg(trajectory_);
+
+
+            ROS_INFO("Visualizing Iteration [%d, %d] and GRID position [%f, %f] - plan (%.2f%% acheived)",iterJ, iterI, target_pose1.position.x, target_pose1.position.y, fraction * 100.0);
+
+            // Visualize the plan in RViz
+            visual_tools.deleteAllMarkers();
+            visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
+            visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
+            for (std::size_t i = 0; i < waypoints.size(); ++i)
+            visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+            visual_tools.trigger();
+
+//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
 
             // Finally plan and execute the trajectory
             plan.trajectory_ = trajectory_;
@@ -354,7 +413,7 @@ int main(int argc, char** argv)
 
     move_group.setPoseTarget(initialGridPose);
 
-    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
+//    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
 
     fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
 
@@ -381,7 +440,7 @@ int main(int argc, char** argv)
     visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
     visual_tools.trigger();
 
-    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
+//    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
 
     // Finally plan and execute the trajectory
     plan.trajectory_ = trajectory_;

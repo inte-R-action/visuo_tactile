@@ -262,3 +262,4 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 #add_subdirectory(interactivity)
 add_subdirectory(tactip_grid_exploration)
+add_subdirectory(tactip_letter_exploration)
