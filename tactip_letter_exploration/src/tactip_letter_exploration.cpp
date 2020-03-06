@@ -23,6 +23,17 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <iostream>
+#include "std_msgs/String.h"
+
+
+std::string dataStatusStr = " ";
+
+// Callback that receives 'continue' when the data has been saved or 'stop' otherwise
+void dataStatusCallback(const std_msgs::String::ConstPtr& msg)
+{
+    dataStatusStr = msg->data.c_str();
+    ROS_INFO("I received: [%s]", msg->data.c_str());
+}
 
 
 int main(int argc, char** argv)
@@ -32,9 +43,12 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    // Setup
-    // ^^^^^
-    //
+
+    // Create Publisher and Subscriber
+    ros::Subscriber tactipSub = node_handle.subscribe("tactip_in", 1, dataStatusCallback);    
+    ros::Publisher tactipPub = node_handle.advertise<std_msgs::String>("tactip_out", 1);    
+
+
     // MoveIt! operates on sets of joints called "planning groups" and stores them in an object called
     // the `JointModelGroup`. Throughout MoveIt! the terms "planning group" and "joint model group"
     // are used interchangably.
@@ -175,6 +189,7 @@ int main(int argc, char** argv)
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // The following code moves the robot to the start position for the exploration of the grid
     // Begin
@@ -241,7 +256,7 @@ int main(int argc, char** argv)
     visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
     visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
     for (std::size_t i = 0; i < waypoints.size(); ++i)
-    visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+        visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
     visual_tools.trigger();
 
     visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
@@ -270,193 +285,231 @@ int main(int argc, char** argv)
     // Begin
 
 
+    ros::Rate loop_rate(10);
+    ros::spinOnce();
+
     double maxColumn = 3;
     double maxRow = 3;
 
-    // This exploration is performed on a 5x5 grid
-    for( int iterJ = 0; iterJ < maxColumn; iterJ++ )
-    {
-        target_pose1 = move_group.getCurrentPose().pose;
+    std_msgs::String tactipStatusStr;
+    std::string controlDataStr = "data_collected";
 
-        if( iterJ > 0 )
+    tactipStatusStr.data = "tactip_up";
+    ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
+    tactipPub.publish(tactipStatusStr);
+
+//    while( ros::ok() )
+//    {    
+        // This exploration is performed on a 5x5 grid
+        for( int iterJ = 0; iterJ < maxColumn; iterJ++ )
         {
-            target_pose1.position.x = initialGridPose.position.x;
-            target_pose1.position.y += RIGHT_MOVE;
-        }
-
-        for( int iterI = 0; iterI < maxRow; iterI++ )
-        {
-            waypoints.clear();
-            waypoints.push_back(target_pose1);  // start pose
-
-            target_pose1.position.z -= DOWN_MOVE;
-            waypoints.push_back(target_pose1);  // move end-effector down
-
-            move_group.setPoseTarget(target_pose1);
-
-//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
-
-            fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
-
-            rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
-
-            ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
-
-            // Thrid create a IterativeParabolicTimeParameterization object
-            success = iptp.computeTimeStamps(rt);
-            ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
-
-
-            // Get RobotTrajectory_msg from RobotTrajectory
-            rt.getRobotTrajectoryMsg(trajectory_);
-
-
-            ROS_INFO("Visualizing Iteration [%d, %d] and GRID position [%f, %f] - plan (%.2f%% acheived)",iterJ, iterI, target_pose1.position.x, target_pose1.position.y, fraction * 100.0);
-
-            // Visualize the plan in RViz
-            visual_tools.deleteAllMarkers();
-            visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
-            visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
-            for (std::size_t i = 0; i < waypoints.size(); ++i)
-            visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
-            visual_tools.trigger();
-
-//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
-
-            // Finally plan and execute the trajectory
-            plan.trajectory_ = trajectory_;
-
-            // IMPORTANT!!!!!     
-            // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
-            // The current version of this program still does NOT work properly with the 'move' method
-            // Using the 'move' method in this program might generate unexected and dangerous robot movements
-            move_group.execute(plan);
-            //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
-
-            //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
-
-            // Get the current kinemtic state of the robot
-            kinematic_state = move_group.getCurrentState();
-
-
-            // send signal here to collect data with the tactip
-            sleep(2);
-
 
             target_pose1 = move_group.getCurrentPose().pose;
 
-            waypoints.clear();
+            if( iterJ > 0 )
+            {
+                target_pose1.position.x = initialGridPose.position.x;
+                target_pose1.position.y += RIGHT_MOVE;
+            }
 
-            target_pose1.position.z += UP_MOVE;
-            waypoints.push_back(target_pose1);  // move end-effector up
-
-            target_pose1.position.x -= BACKWARD_MOVE;
-            waypoints.push_back(target_pose1);  // move end-effector back
-
-            move_group.setPoseTarget(target_pose1);
-
-//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
-
-            fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
-
-            rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
-
-            ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
-
-            // Thrid create a IterativeParabolicTimeParameterization object
-            success = iptp.computeTimeStamps(rt);
-            ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+            for( int iterI = 0; iterI < maxRow; iterI++ )
+            {
 
 
-            // Get RobotTrajectory_msg from RobotTrajectory
-            rt.getRobotTrajectoryMsg(trajectory_);
+                waypoints.clear();
+                waypoints.push_back(target_pose1);  // start pose
+
+                target_pose1.position.z -= DOWN_MOVE;
+                waypoints.push_back(target_pose1);  // move end-effector down
+
+                move_group.setPoseTarget(target_pose1);
+
+    //            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
+
+                fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
+
+                rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
+
+                ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
+
+                // Thrid create a IterativeParabolicTimeParameterization object
+                success = iptp.computeTimeStamps(rt);
+                ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
 
 
-            ROS_INFO("Visualizing Iteration [%d, %d] and GRID position [%f, %f] - plan (%.2f%% acheived)",iterJ, iterI, target_pose1.position.x, target_pose1.position.y, fraction * 100.0);
+                // Get RobotTrajectory_msg from RobotTrajectory
+                rt.getRobotTrajectoryMsg(trajectory_);
 
-            // Visualize the plan in RViz
-            visual_tools.deleteAllMarkers();
-            visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
-            visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
-            for (std::size_t i = 0; i < waypoints.size(); ++i)
-            visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
-            visual_tools.trigger();
 
-//            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
+                ROS_INFO("Visualizing Iteration [%d, %d] and GRID position [%f, %f] - plan (%.2f%% acheived)",iterJ, iterI, target_pose1.position.x, target_pose1.position.y, fraction * 100.0);
 
-            // Finally plan and execute the trajectory
-            plan.trajectory_ = trajectory_;
+                // Visualize the plan in RViz
+                visual_tools.deleteAllMarkers();
+                visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
+                visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
+                for (std::size_t i = 0; i < waypoints.size(); ++i)
+                    visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+                visual_tools.trigger();
 
-            // IMPORTANT!!!!!     
-            // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
-            // The current version of this program still does NOT work properly with the 'move' method
-            // Using the 'move' method in this program might generate unexected and dangerous robot movements
-            move_group.execute(plan);
-            //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
+    //            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
 
-            //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
+                // Finally plan and execute the trajectory
+                plan.trajectory_ = trajectory_;
 
-            // Get the current kinemtic state of the robot
-            kinematic_state = move_group.getCurrentState();
+                // IMPORTANT!!!!!     
+                // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
+                // The current version of this program still does NOT work properly with the 'move' method
+                // Using the 'move' method in this program might generate unexected and dangerous robot movements
+                move_group.execute(plan);
+                //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
+
+                //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
+
+                // Get the current kinemtic state of the robot
+                kinematic_state = move_group.getCurrentState();
+
+
+                // send signal here to collect data with the tactip
+//                sleep(2);
+
+                tactipStatusStr.data = "tactip_down";
+                ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
+                tactipPub.publish(tactipStatusStr);
+
+                while( controlDataStr.compare(dataStatusStr) != 0 )
+                {
+//                    std::cout << "TACTIP waiting for data collection to finish" << std::endl;
+                    ROS_INFO("ROS_INFO: TACTIP waiting for data collection to finish");
+                    usleep(500000);
+                }
+
+                dataStatusStr = "empty";
+
+                target_pose1 = move_group.getCurrentPose().pose;
+
+
+                tactipStatusStr.data = "tactip_up";
+                ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
+                tactipPub.publish(tactipStatusStr);
+
+
+                waypoints.clear();
+
+                target_pose1.position.z += UP_MOVE;
+                waypoints.push_back(target_pose1);  // move end-effector up
+
+                target_pose1.position.x -= BACKWARD_MOVE;
+                waypoints.push_back(target_pose1);  // move end-effector back
+
+                move_group.setPoseTarget(target_pose1);
+
+    //            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
+
+                fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
+
+                rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
+
+                ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
+
+                // Thrid create a IterativeParabolicTimeParameterization object
+                success = iptp.computeTimeStamps(rt);
+                ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+
+
+                // Get RobotTrajectory_msg from RobotTrajectory
+                rt.getRobotTrajectoryMsg(trajectory_);
+
+
+                ROS_INFO("Visualizing Iteration [%d, %d] and GRID position [%f, %f] - plan (%.2f%% acheived)",iterJ, iterI, target_pose1.position.x, target_pose1.position.y, fraction * 100.0);
+
+                // Visualize the plan in RViz
+                visual_tools.deleteAllMarkers();
+                visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
+                visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
+                for (std::size_t i = 0; i < waypoints.size(); ++i)
+                    visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+                visual_tools.trigger();
+
+    //            visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
+
+                // Finally plan and execute the trajectory
+                plan.trajectory_ = trajectory_;
+
+                // IMPORTANT!!!!!     
+                // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
+                // The current version of this program still does NOT work properly with the 'move' method
+                // Using the 'move' method in this program might generate unexected and dangerous robot movements
+                move_group.execute(plan);
+                //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
+
+                //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
+
+                // Get the current kinemtic state of the robot
+                kinematic_state = move_group.getCurrentState();
+            }
         }
-    }
 
-    // End of iteration
-    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    // The following code moves the robot back to the START position
-
-    waypoints.clear();
-    waypoints.push_back(initialGridPose);  // up
-
-    move_group.setPoseTarget(initialGridPose);
-
-//    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
-
-    fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
-
-    rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
-
-    ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
-
-    // Thrid create a IterativeParabolicTimeParameterization object
-    success = iptp.computeTimeStamps(rt);
-    ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+        // End of iteration
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-    // Get RobotTrajectory_msg from RobotTrajectory
-    rt.getRobotTrajectoryMsg(trajectory_);
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        // The following code moves the robot back to the START position
+
+        waypoints.clear();
+        waypoints.push_back(initialGridPose);  // up
+
+        move_group.setPoseTarget(initialGridPose);
+
+    //    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
+
+        fraction = move_group.computeCartesianPath(waypoints,CART_STEP_SIZE_,CART_JUMP_THRESH_,trajectory_,AVOID_COLLISIONS_);
+
+        rt.setRobotTrajectoryMsg(*kinematic_state, trajectory_);
+
+        ROS_INFO_STREAM("Pose reference frame: " << move_group.getPoseReferenceFrame ());
+
+        // Thrid create a IterativeParabolicTimeParameterization object
+        success = iptp.computeTimeStamps(rt);
+        ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
 
 
-    ROS_INFO("Visualizing START pose plan for exploration (%.2f%% acheived)",fraction * 100.0);
+        // Get RobotTrajectory_msg from RobotTrajectory
+        rt.getRobotTrajectoryMsg(trajectory_);
 
-    // Visualize the plan in RViz
-    visual_tools.deleteAllMarkers();
-    visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
-    visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
-    for (std::size_t i = 0; i < waypoints.size(); ++i)
-    visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
-    visual_tools.trigger();
 
-//    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
+        ROS_INFO("Visualizing START pose plan for exploration (%.2f%% acheived)",fraction * 100.0);
 
-    // Finally plan and execute the trajectory
-    plan.trajectory_ = trajectory_;
+        // Visualize the plan in RViz
+        visual_tools.deleteAllMarkers();
+        visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
+        visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
+        for (std::size_t i = 0; i < waypoints.size(); ++i)
+            visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+        visual_tools.trigger();
 
-    // IMPORTANT!!!!!     
-    // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
-    // The current version of this program still does NOT work properly with the 'move' method
-    // Using the 'move' method in this program might generate unexected and dangerous robot movements
-    move_group.execute(plan);
-    //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
+    //    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to move the robot movement");
 
-    //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
+        // Finally plan and execute the trajectory
+        plan.trajectory_ = trajectory_;
 
-    // Get the current kinemtic state of the robot
-    kinematic_state = move_group.getCurrentState();
+        // IMPORTANT!!!!!     
+        // Use always the 'execute' method to move the robot in the simulation environment and the real robot!
+        // The current version of this program still does NOT work properly with the 'move' method
+        // Using the 'move' method in this program might generate unexected and dangerous robot movements
+        move_group.execute(plan);
+        //    move_group.move(); // DO NOT USE THIS METHOD IN THIS PROGRAM
 
+        //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue with the next action");
+
+        // Get the current kinemtic state of the robot
+        kinematic_state = move_group.getCurrentState();
+
+
+        ros::spinOnce();
+        loop_rate.sleep();
+
+//    }
     // End
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
