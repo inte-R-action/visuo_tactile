@@ -510,6 +510,11 @@ int main(int argc, char** argv)
         loop_rate.sleep();
 
 //    }
+
+        tactipStatusStr.data = "end_of_process";
+        ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
+        tactipPub.publish(tactipStatusStr);
+
     // End
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
