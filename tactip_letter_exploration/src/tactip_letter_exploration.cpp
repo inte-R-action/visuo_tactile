@@ -26,6 +26,7 @@
 #include <string.h>
 #include "std_msgs/String.h"
 #include "visuo_tactile/processArguments.h"
+#include "std_msgs/Int32.h"
 
 
 std::string dataStatusStr = " ";
@@ -60,6 +61,7 @@ int main(int argc, char** argv)
     ros::Publisher tactipPub = node_handle.advertise<std_msgs::String>("tactip_out", 1);    
 
     ros::Publisher processArgumentsPub = node_handle.advertise<visuo_tactile::processArguments>("process_arguments", 1);
+    ros::Publisher iterationPub = node_handle.advertise<std_msgs::Int32>("tactip_iteration", 1);
 
 
     visuo_tactile::processArguments inputArguments;
@@ -71,7 +73,7 @@ int main(int argc, char** argv)
 
 
 //    processArgumentsPub.publish(inputArguments);
-
+//    ros::spinOnce();
 
     // MoveIt! operates on sets of joints called "planning groups" and stores them in an object called
     // the `JointModelGroup`. Throughout MoveIt! the terms "planning group" and "joint model group"
@@ -317,6 +319,8 @@ int main(int argc, char** argv)
 
     processArgumentsPub.publish(inputArguments);
 
+    std_msgs::Int32 currentIteration;
+
     std_msgs::String tactipStatusStr;
     std::string controlDataStr = "data_collected";
 
@@ -324,8 +328,18 @@ int main(int argc, char** argv)
     ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
     tactipPub.publish(tactipStatusStr);
 
-//    while( ros::ok() )
-//    {    
+    sleep(2);
+
+    for( int numIter = 0; numIter < numOfIterations; numIter++ )
+    {
+        std::cout << "Starting iteration " << numIter + 1 << std::endl;
+
+        currentIteration.data = numIter + 1;
+        iterationPub.publish(currentIteration);
+
+        ros::spinOnce();
+        sleep(1);
+
         // This exploration is performed on a 5x5 grid
         for( int iterJ = 0; iterJ < maxColumn; iterJ++ )
         {
@@ -535,11 +549,14 @@ int main(int argc, char** argv)
         ros::spinOnce();
         loop_rate.sleep();
 
-//    }
+        std::cout << "End of iteration " << numIter + 1 << std::endl;
 
-        tactipStatusStr.data = "end_of_process";
-        ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
-        tactipPub.publish(tactipStatusStr);
+        sleep(1);
+    }
+
+    tactipStatusStr.data = "end_of_process";
+    ROS_INFO("TACTIP: %s", tactipStatusStr.data.c_str());
+    tactipPub.publish(tactipStatusStr);
 
     // End
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

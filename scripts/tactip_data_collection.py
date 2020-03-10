@@ -21,10 +21,11 @@
 
 import rospy
 from std_msgs.msg import String
+from std_msgs.msg import Int32
 import time
 import sys
 from visuo_tactile.msg import processArguments
-
+import os
 
 control_data = ""
 outputControlString = ""
@@ -34,7 +35,7 @@ operationMode = "";
 folderPath = "";
 objectLabel = "";
 numOfIterations = 0;
-
+tactipIteration = 0;
 
 def controlInCallback(data_in):
     global control_data;
@@ -44,6 +45,15 @@ def controlInCallback(data_in):
         rospy.loginfo(rospy.get_caller_id() + " I heard %s from TacTip ", data_in.data)
         control_data = data_in.data
         tactipReady = True
+
+
+def createDirectory():
+    if not os.path.exists(folderPath + '/' + objectLabel):
+        os.makedirs(folderPath + '/' + objectLabel)
+        print("Directory doesn't exist");
+        print("Directory created: ", folderPath + '/' + objectLabel);
+    else:
+        print("Directory exists");
 
 
 def processArgumentsCallback(data_in):
@@ -59,6 +69,17 @@ def processArgumentsCallback(data_in):
 
     rospy.loginfo(rospy.get_caller_id() + " Process arguments: %s, %s, %s, %d", operationMode, folderPath, objectLabel, numOfIterations)
 
+    createDirectory();
+
+
+
+def tactipIterationCallback(data_in):
+    global tactipIteration;
+
+    tactipIteration = data_in.data;
+
+    rospy.loginfo(rospy.get_caller_id() + " Tactip iteration: %d", tactipIteration)
+
 
 def tactipSensorMain(sys):
     global tactipReady
@@ -69,6 +90,7 @@ def tactipSensorMain(sys):
     rospy.Subscriber('tactip_out', String, controlInCallback);
 
     rospy.Subscriber('process_arguments', processArguments, processArgumentsCallback);
+    rospy.Subscriber('tactip_iteration', Int32, tactipIterationCallback);
 
     rate = rospy.Rate(10);
 
@@ -76,10 +98,13 @@ def tactipSensorMain(sys):
         if( tactipReady == True ):
             if( control_data == "tactip_down" ):
                 rospy.loginfo("Saving images")
-                outputControlString = "data_collected";
 
                 # Data collection, training or classification
+                file = open(folderPath + '/' + objectLabel + '/' + 'sample_' + str(tactipIteration), "w");
+                file.write(folderPath + '/' + objectLabel + '/' + 'sample_' + str(tactipIteration));
+                file.close();
                 
+                outputControlString = "data_collected";
             
             elif( control_data == "tactip_up" ):
                 rospy.loginfo("Waiting for sensor")
