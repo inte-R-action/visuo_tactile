@@ -22,11 +22,18 @@
 import rospy
 from std_msgs.msg import String
 import time
+import sys
+from visuo_tactile.msg import processArguments
 
 
 control_data = ""
 outputControlString = ""
 tactipReady = False
+
+operationMode = "";
+folderPath = "";
+objectLabel = "";
+numOfIterations = 0;
 
 
 def controlInCallback(data_in):
@@ -39,13 +46,29 @@ def controlInCallback(data_in):
         tactipReady = True
 
 
-def tactipSensorMain():
+def processArgumentsCallback(data_in):
+    global operationMode;
+    global folderPath;
+    global objectLabel;
+    global numOfIterations;
+
+    operationMode = data_in.mode;
+    folderPath = data_in.folder;
+    objectLabel = data_in.label;
+    numOfIterations = data_in.iterations;
+
+    rospy.loginfo(rospy.get_caller_id() + " Process arguments: %s, %s, %s, %d", operationMode, folderPath, objectLabel, numOfIterations)
+
+
+def tactipSensorMain(sys):
     global tactipReady
 
     rospy.init_node('tactip_sensor');
 
     tactipPub = rospy.Publisher('tactip_in', String, queue_size = 1)
     rospy.Subscriber('tactip_out', String, controlInCallback);
+
+    rospy.Subscriber('process_arguments', processArguments, processArgumentsCallback);
 
     rate = rospy.Rate(10);
 
@@ -54,6 +77,9 @@ def tactipSensorMain():
             if( control_data == "tactip_down" ):
                 rospy.loginfo("Saving images")
                 outputControlString = "data_collected";
+
+                # Data collection, training or classification
+                
             
             elif( control_data == "tactip_up" ):
                 rospy.loginfo("Waiting for sensor")
@@ -83,7 +109,7 @@ def tactipSensorMain():
 
 if __name__ == '__main__':
     try:
-        tactipSensorMain();
+        tactipSensorMain(sys);
     except rospy.ROSInterruptException:
         pass
 

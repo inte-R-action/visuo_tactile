@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(visuo-tactile)
+project(visuo_tactile)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -38,6 +38,7 @@ find_package(catkin REQUIRED
     roscpp
     rospy
     std_msgs
+    message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -75,11 +76,11 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+add_message_files(
+  FILES
+  processArguments.msg
 #   Message2.msg
-# )
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -96,10 +97,10 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -132,8 +133,8 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES visuo-tactile
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  LIBRARIES visuo_tactile
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -176,7 +177,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/visuo-tactile.cpp
+#   src/${PROJECT_NAME}/visuo_tactile.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -187,7 +188,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-#add_executable(${PROJECT_NAME} src/visuo-tactile.cpp)
+#add_executable(${PROJECT_NAME} src/visuo_tactile.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -252,7 +253,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_visuo-tactile.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_visuo_tactile.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

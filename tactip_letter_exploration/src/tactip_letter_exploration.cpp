@@ -23,7 +23,9 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <iostream>
+#include <string.h>
 #include "std_msgs/String.h"
+#include "visuo_tactile/processArguments.h"
 
 
 std::string dataStatusStr = " ";
@@ -38,6 +40,15 @@ void dataStatusCallback(const std_msgs::String::ConstPtr& msg)
 
 int main(int argc, char** argv)
 {
+    if( argc < 2 )
+        std::cout << "ERROR: missing input parameters" << std::endl;
+
+    std::string operationMode = argv[1];    // collect, train, classify
+    std::string folderPath = argv[2];       // folder to store the images
+    std::string objectLabel = argv[3];      // name of object
+    int numOfIterations = std::stoi(argv[4]);          // number of repetitions for each object
+
+
     ros::init(argc, argv, "tactip_letter_exploration");
     ros::NodeHandle node_handle;
     ros::AsyncSpinner spinner(1);
@@ -47,6 +58,19 @@ int main(int argc, char** argv)
     // Create Publisher and Subscriber
     ros::Subscriber tactipSub = node_handle.subscribe("tactip_in", 1, dataStatusCallback);    
     ros::Publisher tactipPub = node_handle.advertise<std_msgs::String>("tactip_out", 1);    
+
+    ros::Publisher processArgumentsPub = node_handle.advertise<visuo_tactile::processArguments>("process_arguments", 1);
+
+
+    visuo_tactile::processArguments inputArguments;
+
+    inputArguments.mode = operationMode;
+    inputArguments.folder = folderPath;
+    inputArguments.label = objectLabel;
+    inputArguments.iterations = numOfIterations;
+
+
+//    processArgumentsPub.publish(inputArguments);
 
 
     // MoveIt! operates on sets of joints called "planning groups" and stores them in an object called
@@ -290,6 +314,8 @@ int main(int argc, char** argv)
 
     double maxColumn = 3;
     double maxRow = 3;
+
+    processArgumentsPub.publish(inputArguments);
 
     std_msgs::String tactipStatusStr;
     std::string controlDataStr = "data_collected";
