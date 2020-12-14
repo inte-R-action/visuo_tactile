@@ -55,6 +55,7 @@ int main(int argc, char** argv)
 
     while( ros::ok() )
     {
+        printf("==================================================\n");
         // reset the robotic gripper (needed to activate the robot)
         outputControlValues.rACT = 0;
         outputControlValues.rGTO = 0;
@@ -83,14 +84,21 @@ int main(int argc, char** argv)
 
         while( gripperStatus.gSTA != 3 )
         {
-            printf("ACTION IN PROGRESS: gSTA [%d]\n", gripperStatus.gSTA);
+            printf("IN PROGRESS: gSTA [%d]\n", gripperStatus.gSTA);
             usleep(100000);
         }
 
-        printf("ACTION COMPLETED: gSTA [%d]\n", gripperStatus.gSTA);
-        sleep(3);
+        printf("COMPLETED: gSTA [%d]\n", gripperStatus.gSTA);
+        sleep(1);
+        // set gripper to standby
+        outputControlValues.rGTO = 0;
+
+        Robotiq2FGripperArgPub.publish(outputControlValues);
+        std::cout << "STANDBY GRIPPER" << std::endl; 
+        sleep(1);
 
         // close robot gripper to maximum value
+        outputControlValues.rGTO = 1;
         outputControlValues.rPR = 255;
 
         Robotiq2FGripperArgPub.publish(outputControlValues);
@@ -98,15 +106,21 @@ int main(int argc, char** argv)
 
         while( gripperStatus.gOBJ != 3 )
         {
-            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
             usleep(100000);
         }
 
-        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-        sleep(3);
+        printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+        // set gripper to standby
+        outputControlValues.rGTO = 0;
+
+        Robotiq2FGripperArgPub.publish(outputControlValues);
+        std::cout << "STANDBY GRIPPER" << std::endl; 
+        sleep(1);
 
 
         // open robot gripper to maximum value
+        outputControlValues.rGTO = 1;
         outputControlValues.rPR = 0;
 
         Robotiq2FGripperArgPub.publish(outputControlValues);
@@ -114,17 +128,23 @@ int main(int argc, char** argv)
 
         while( gripperStatus.gOBJ != 3 )
         {
-            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
             usleep(100000);
         }
 
-        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-        sleep(3);
+        printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+        // set gripper to standby
+        outputControlValues.rGTO = 0;
+
+        Robotiq2FGripperArgPub.publish(outputControlValues);
+        std::cout << "STANDBY GRIPPER" << std::endl; 
+        sleep(1);
 
         int gripperSpeed = 20;
         int gripperForce = 50;
         int gripperPosition = 180;
 
+        outputControlValues.rGTO = 1;
         // decrease speed
         outputControlValues.rSP = gripperSpeed;
         // decrease force
@@ -137,14 +157,20 @@ int main(int argc, char** argv)
 
         while( gripperStatus.gOBJ != 3 )
         {
-            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
             usleep(100000);
         }
 
-        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-        sleep(3);
+        printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+        // set gripper to standby
+        outputControlValues.rGTO = 0;
+
+        Robotiq2FGripperArgPub.publish(outputControlValues);
+        std::cout << "STANDBY GRIPPER" << std::endl; 
+        sleep(1);
 
         // open robot gripper to maximum value
+        outputControlValues.rGTO = 1;
         outputControlValues.rPR = 0;
 
         Robotiq2FGripperArgPub.publish(outputControlValues);
@@ -157,7 +183,12 @@ int main(int argc, char** argv)
         }
 
         printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-        sleep(3);
+        // set gripper to standby
+        outputControlValues.rGTO = 0;
+
+        Robotiq2FGripperArgPub.publish(outputControlValues);
+        std::cout << "STANDBY GRIPPER" << std::endl; 
+        sleep(1);
     }
 
     ros::shutdown();
