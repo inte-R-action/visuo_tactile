@@ -32,6 +32,17 @@ robotiq_2f_gripper_control::Robotiq2FGripper_robot_input gripperStatus;
 void gripperStatusCallback(const robotiq_2f_gripper_control::Robotiq2FGripper_robot_input::ConstPtr& msg)
 {
     gripperStatus = *msg;
+
+    if( msg->gOBJ == 0 )
+   		ROS_INFO("ROBOT FINGERS MOVING");
+   	else if( msg->gOBJ == 1 )
+   		ROS_INFO("ROBOT FINGERS STOPPED DUE TO CONTACT DETECTED WHILE OPENING");
+   	else if( msg->gOBJ == 2 )
+   		ROS_INFO("ROBOT FINGERS STOPPED DUE TO CONTACT DETECTED WHILE CLOSING");
+   	else if( msg->gOBJ == 3 )
+   		ROS_INFO("ROBOT FINGERS AT THE REQUESTED POSITION");
+   	else
+   		ROS_INFO("ROBOT FINGERS ERROR");
 }
 
 
