@@ -25,6 +25,15 @@
 #include "robotiq_2f_gripper_control/Robotiq2FGripper_robot_input.h"
 
 
+robotiq_2f_gripper_control::Robotiq2FGripper_robot_input gripperStatus;
+
+
+void gripperStatusCallback(const robotiq_2f_gripper_control::Robotiq2FGripper_robot_input::ConstPtr& msg)
+{
+    gripperStatus = *msg;
+}
+
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "rq_gripper_2F140");
@@ -36,8 +45,10 @@ int main(int argc, char** argv)
     spinner.start();
 
     robotiq_2f_gripper_control::Robotiq2FGripper_robot_output outputControlValues;
+//    robotiq_2f_gripper_control::Robotiq2FGripper_robot_input gripperStatus;
 
-    ros::Publisher Robotiq2FGripperArgPub = node_handle.advertise<robotiq_2f_gripper_control::Robotiq2FGripper_robot_output>("Robotiq2FGripperRobotOutput", 100);
+    ros::Publisher Robotiq2FGripperArgPub = node_handle.advertise<robotiq_2f_gripper_control::Robotiq2FGripper_robot_output>("Robotiq2FGripperRobotOutput", 1);
+    ros::Subscriber Robotiq2FGripperStatusPub = node_handle.subscribe("Robotiq2FGripperRobotInput", 1000, gripperStatusCallback);
 
     ros::spinOnce();
     loop_rate.sleep();
@@ -66,9 +77,17 @@ int main(int argc, char** argv)
         outputControlValues.rSP = 255;
         outputControlValues.rFR = 150;
 
+
         Robotiq2FGripperArgPub.publish(outputControlValues);
         std::cout << "ACTIVATE GRIPPER" << std::endl; 
 
+        while( gripperStatus.gSTA != 3 )
+        {
+            printf("ACTION IN PROGRESS: gSTA [%d]\n", gripperStatus.gSTA);
+            usleep(100000);
+        }
+
+        printf("ACTION COMPLETED: gSTA [%d]\n", gripperStatus.gSTA);
         sleep(3);
 
         // close robot gripper to maximum value
@@ -77,6 +96,13 @@ int main(int argc, char** argv)
         Robotiq2FGripperArgPub.publish(outputControlValues);
         std::cout << "CLOSE GRIPPER" << std::endl; 
 
+        while( gripperStatus.gOBJ != 3 )
+        {
+            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            usleep(100000);
+        }
+
+        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
         sleep(3);
 
 
@@ -86,6 +112,13 @@ int main(int argc, char** argv)
         Robotiq2FGripperArgPub.publish(outputControlValues);
         std::cout << "OPEN GRIPPER" << std::endl; 
 
+        while( gripperStatus.gOBJ != 3 )
+        {
+            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            usleep(100000);
+        }
+
+        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
         sleep(3);
 
         int gripperSpeed = 20;
@@ -102,6 +135,13 @@ int main(int argc, char** argv)
         Robotiq2FGripperArgPub.publish(outputControlValues);
         std::cout << "[speed, force, position] = " << gripperSpeed << ", " << gripperForce << ", " << gripperPosition << std::endl; 
 
+        while( gripperStatus.gOBJ != 3 )
+        {
+            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            usleep(100000);
+        }
+
+        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
         sleep(3);
 
         // open robot gripper to maximum value
@@ -110,12 +150,15 @@ int main(int argc, char** argv)
         Robotiq2FGripperArgPub.publish(outputControlValues);
         std::cout << "OPEN GRIPPER" << std::endl; 
 
+        while( gripperStatus.gOBJ != 3 )
+        {
+            printf("ACTION IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+            usleep(100000);
+        }
+
+        printf("ACTION COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
         sleep(3);
     }
-
-    // End
-    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 
     ros::shutdown();
 
