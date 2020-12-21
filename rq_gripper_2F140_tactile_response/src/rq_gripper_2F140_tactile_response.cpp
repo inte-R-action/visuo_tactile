@@ -64,7 +64,7 @@ int main(int argc, char** argv)
     // connection of publisher and subscriber with the Robotiq controller from ROS Industrial
     ros::Publisher Robotiq2FGripperArgPub = node_handle.advertise<robotiq_2f_gripper_control::Robotiq2FGripper_robot_output>("Robotiq2FGripperRobotOutput", 1);
     ros::Subscriber Robotiq2FGripperStatusSub = node_handle.subscribe("Robotiq2FGripperRobotInput", 1, gripperStatusCallback);
-    ros::Subscriber tactileSensorStatusSub = node_handle.subscribe("icmTactileResponse", 1, tactileStatusCallback);
+    ros::Subscriber tactileSensorStatusSub = node_handle.subscribe("pressure", 1, tactileStatusCallback);
 
 
     printf("==================================================\n");
