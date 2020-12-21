@@ -19,7 +19,6 @@
 #include <iostream>
 #include <string.h>
 #include "std_msgs/String.h"
-#include "visuo_tactile/processArguments.h"
 #include "std_msgs/Int32.h"
 #include "robotiq_2f_gripper_control/Robotiq2FGripper_robot_output.h"
 #include "robotiq_2f_gripper_control/Robotiq2FGripper_robot_input.h"
