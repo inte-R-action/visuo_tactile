@@ -1,0 +1,14 @@
+<launch>
+
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+  <!-- GDB Debug Option -->
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix"
+     value="gdb -x $(find ur3_moveit_config)/launch/gdb_settings.gdb --ex run --args" />
+
+  <node name="hri_static_demo" pkg="visuo-tactile" type="hri_static_demo" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
+  </node>
+
+</launch>
