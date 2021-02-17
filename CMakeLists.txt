@@ -266,5 +266,4 @@ add_subdirectory(tactip_grid_exploration)
 add_subdirectory(tactip_letter_exploration)
 add_subdirectory(rq_gripper_2F140)
 add_subdirectory(rq_gripper_2F140_tactile_response)
-add_subdirectory(hri_static_demo)
-
+add_subdirectory(robotiq_griper_control)
